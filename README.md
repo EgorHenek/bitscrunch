@@ -11,5 +11,8 @@ Download binary for your platform from
 
 ## Arguments
 
-`-h` - help `-count` - numbers of requests (default: 10) `-key-path` - path to
-access-key.json (default: ./access-key.json)
+`-h` - help
+
+`-count` - numbers of requests (default: 10)
+
+`-key-path` - path to access-key.json (default: ./access-key.json)
