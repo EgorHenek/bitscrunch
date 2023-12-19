@@ -49,15 +49,6 @@ func main() {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodGet, host+path, nil)
-	if err != nil {
-		log.Fatalf("failed to create request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("name", accessKey.Name)
-	req.Header.Set("pubkey", accessKey.PublicKey)
-
 	wg := sync.WaitGroup{}
 	guard := make(chan struct{}, *maxParallel)
 
@@ -66,6 +57,15 @@ func main() {
 		wg.Add(1)
 
 		go func() {
+			req, err := http.NewRequest(http.MethodGet, host+path, nil)
+			if err != nil {
+				log.Fatalf("failed to create request: %v", err)
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("name", accessKey.Name)
+			req.Header.Set("pubkey", accessKey.PublicKey)
+
 			rid, err := uuid.NewUUID()
 			if err != nil {
 				log.Fatalf("failed to generate uuid: %v", err)
@@ -79,7 +79,7 @@ func main() {
 
 			req.Header.Set("rId", rid.String())
 			req.Header.Set("Sign", sign)
-			req.Header.Set("meesage", message)
+			req.Header.Set("message", message)
 
 			resp, err := client.Do(req)
 			if err != nil {
@@ -97,9 +97,8 @@ func main() {
 			<-guard
 			wg.Done()
 		}()
-
-		wg.Wait()
 	}
+	wg.Wait()
 }
 
 func (key *AccessKey) getPrivateKey() (*ecdsa.PrivateKey, error) {
