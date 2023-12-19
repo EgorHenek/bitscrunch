@@ -16,3 +16,5 @@ Download binary for your platform from
 `-count` - numbers of requests (default: 10)
 
 `-key-path` - path to access-key.json (default: ./access-key.json)
+
+`-parallel` - numbers of parallel requests (default: 10)
