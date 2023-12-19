@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -32,6 +33,7 @@ type AccessKey struct {
 func main() {
 	keyPath := flag.String("key-path", "./access-key.json", "path to access key")
 	repatedCount := flag.Int("count", 10, "number of requests")
+	maxParallel := flag.Int("parallel", 10, "number of parallel requests")
 
 	flag.Parse()
 
@@ -56,34 +58,47 @@ func main() {
 	req.Header.Set("name", accessKey.Name)
 	req.Header.Set("pubkey", accessKey.PublicKey)
 
+	wg := sync.WaitGroup{}
+	guard := make(chan struct{}, *maxParallel)
+
 	for i := 0; i < *repatedCount; i++ {
-		rid, err := uuid.NewUUID()
-		if err != nil {
-			log.Fatalf("failed to generate uuid: %v", err)
-		}
+		guard <- struct{}{}
+		wg.Add(1)
 
-		message := fmt.Sprintf("%s:GET:%s::", rid.String(), path)
-		sign, err := signMessage(&accessKey, message)
-		if err != nil {
-			log.Fatalf("failed to sign message: %v", err)
-		}
+		go func() {
+			rid, err := uuid.NewUUID()
+			if err != nil {
+				log.Fatalf("failed to generate uuid: %v", err)
+			}
 
-		req.Header.Set("rId", rid.String())
-		req.Header.Set("Sign", sign)
-		req.Header.Set("meesage", message)
+			message := fmt.Sprintf("%s:GET:%s::", rid.String(), path)
+			sign, err := signMessage(&accessKey, message)
+			if err != nil {
+				log.Fatalf("failed to sign message: %v", err)
+			}
 
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Fatalf("failed to send request: %v", err)
-		}
-		defer resp.Body.Close()
+			req.Header.Set("rId", rid.String())
+			req.Header.Set("Sign", sign)
+			req.Header.Set("meesage", message)
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalf("failed to read response body: %v", err)
-		}
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Fatalf("failed to send request: %v", err)
+			}
+			defer resp.Body.Close()
 
-		fmt.Println(string(body))
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Fatalf("failed to read response body: %v", err)
+			}
+
+			fmt.Println(string(body))
+
+			<-guard
+			wg.Done()
+		}()
+
+		wg.Wait()
 	}
 }
 
