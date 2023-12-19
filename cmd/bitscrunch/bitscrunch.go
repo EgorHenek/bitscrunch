@@ -97,9 +97,8 @@ func main() {
 			<-guard
 			wg.Done()
 		}()
-
-		wg.Wait()
 	}
+	wg.Wait()
 }
 
 func (key *AccessKey) getPrivateKey() (*ecdsa.PrivateKey, error) {
